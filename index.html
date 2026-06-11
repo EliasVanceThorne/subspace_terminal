@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Subspace Terminal ██</title>
   <style>
-    /* ---------- CRT SCI-FI STYLE ---------- */
+    /* ---------- FONT CRT LEGGIBILE ---------- */
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
     * {
       box-sizing: border-box;
     }
@@ -17,7 +18,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-family: 'VT323', monospace; /* VT323 per tutto il corpo */
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
       padding: 20px;
     }
 
@@ -30,7 +31,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.03) 0px, rgba(0, 255, 0, 0.03) 2px, transparent 2px, transparent 4px);
+      background: repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.05) 0px, rgba(0, 255, 0, 0.05) 2px, transparent 2px, transparent 4px);
       pointer-events: none;
       z-index: 2;
     }
@@ -67,13 +68,12 @@
       border-radius: 12px;
       padding: 20px;
       width: 100%;
-      max-width: 900px;
+      max-width: 950px;
       box-shadow: 0 0 20px #0f0, inset 0 0 10px #0f0;
       color: #0f0;
       font-size: 1.2rem;
     }
 
-    /* Scrollbar vintage */
     ::-webkit-scrollbar {
       width: 8px;
       background: #000;
@@ -86,7 +86,6 @@
       border-radius: 4px;
     }
 
-    /* Chat log */
     #chatLog {
       height: 55vh;
       overflow-y: auto;
@@ -94,7 +93,7 @@
       padding: 10px;
       margin-bottom: 20px;
       background: #000000aa;
-      font-family: 'VT323', monospace;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
       font-size: 1.1rem;
     }
 
@@ -108,7 +107,7 @@
     .system-message {
       color: #aaffaa;
       font-style: italic;
-      opacity: 0.8;
+      opacity: 0.9;
     }
 
     .input-area {
@@ -117,32 +116,34 @@
       flex-wrap: wrap;
     }
 
-    /* Garantisce VT323 anche per input e select */
-    input, button, select, textarea {
+    input, button, select {
       background: #000;
       border: 1px solid #0f0;
       color: #0f0;
-      font-family: 'VT323', monospace;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
       font-size: 1.2rem;
       padding: 8px 12px;
       outline: none;
     }
 
-    /* Cursore spesso e lampeggiante per l'input (effetto stile CRT) */
+    /* CURSORE LAMPEGGIANTE STILE BLOCCO (effetto terminale) */
     #messageInput {
       flex: 3;
       caret-color: #0f0;
-      text-shadow: 0 0 1px #0f0;
-      font-weight: normal;
-      /* Simula un cursore più spesso: aumenta leggermente la dimensione del carattere e usa letter-spacing */
-      letter-spacing: 0.5px;
+      background: #000;
+      border: 1px solid #0f0;
+      /* Simula un cursore a blocco tramite animazione */
+      border-right: 2px solid #0f0;
+      animation: blinkCursor 1s step-end infinite;
     }
-    /* Aggiunge un effetto lampeggiante personalizzato al cursore (alcuni browser supportano caret-shape) */
-    @supports (caret-shape: block) {
-      #messageInput {
-        caret-shape: block;
-        caret-color: #0f0;
-      }
+    @keyframes blinkCursor {
+      0%, 100% { border-right-color: #0f0; }
+      50% { border-right-color: transparent; }
+    }
+    /* Rimuove l'effetto quando l'input non è focalizzato (opzionale) */
+    #messageInput:focus {
+      border-right: 2px solid #0f0;
+      animation: blinkCursor 1s step-end infinite;
     }
 
     input:focus, button:active {
@@ -187,25 +188,27 @@
       margin: 0 0 10px 0;
       letter-spacing: 2px;
       text-shadow: 0 0 5px #0f0;
-      font-family: 'VT323', monospace;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
     }
     hr {
       border-color: #0f0;
     }
+    .countdown-message {
+      color: #cfc;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="crt">
 <div class="terminal">
   <h1>> SUBSPACE TERMINAL v1.0 <span class="blinking-cursor"></span></h1>
-  <div id="authPanel">
-    <!-- pannello login/registrazione -->
-  </div>
+  <div id="authPanel"></div>
   <div id="chatPanel" style="display: none;">
     <div id="chatLog"></div>
     <div class="input-area">
-      <input type="text" id="messageInput" placeholder="> Transmette messaggio subspaziale..." maxlength="300">
+      <input type="text" id="messageInput" placeholder="> Transmit subspace message..." maxlength="300">
       <button id="sendBtn">>> SEND</button>
     </div>
     <div class="status-bar">
@@ -217,7 +220,7 @@
 </div>
 
 <script>
-  // ---------- CONFIGURAZIONE SUPABASE ----------
+  // ---------- SUPABASE CONFIG (USA I TUOI DATI) ----------
   const SUPABASE_URL = "https://dvjtdszdzcdatqextzrz.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_y2ndok49LIbaDl7C89aiGg_lABxwt_u";
   const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -228,7 +231,6 @@
   let shownMessages = new Set();
   let refreshInterval = null;
 
-  // Elementi DOM
   const authPanel = document.getElementById('authPanel');
   const chatPanel = document.getElementById('chatPanel');
   const chatLogDiv = document.getElementById('chatLog');
@@ -239,12 +241,14 @@
   const sectorInfoSpan = document.getElementById('sectorInfo');
 
   // ---------- UTILITY ----------
-  function addSystemMessage(text) {
+  function addSystemMessage(text, isCountdown = false) {
     const div = document.createElement('div');
     div.className = 'message system-message';
+    if (isCountdown) div.style.fontWeight = 'bold';
     div.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § ${text}`;
     chatLogDiv.appendChild(div);
     chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
+    return div;
   }
 
   function addUserMessage(nickname, content, sentAt, sectorFrom) {
@@ -265,39 +269,39 @@
     });
   }
 
-  // Calcola il ritardo in secondi tra due settori
+  // Calcola ritardo in secondi tra due settori
   async function getDelaySeconds(sectorFrom, sectorTo) {
     const { data: sectors, error } = await _supabase.from('sectors').select('*');
-    if (error) return 5;
+    if (error || !sectors) return 3;
     const from = sectors.find(s => s.name === sectorFrom);
     const to = sectors.find(s => s.name === sectorTo);
-    if (!from || !to) return 5;
+    if (!from || !to) return 3;
     const dx = from.x - to.x;
     const dy = from.y - to.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    return Math.floor(dist * 2);
+    return Math.max(2, Math.floor(dist * 2));
   }
 
-  // Calcola il ritardo massimo verso tutti gli altri settori (escluso il proprio)
+  // Ritardo massimo verso qualsiasi altro settore
   async function getMaxDelayForSector(sectorFrom) {
     const { data: sectors, error } = await _supabase.from('sectors').select('*');
-    if (error) return 5;
+    if (error || !sectors) return 5;
     let maxDelay = 0;
     for (const s of sectors) {
       if (s.name === sectorFrom) continue;
       const delay = await getDelaySeconds(sectorFrom, s.name);
       if (delay > maxDelay) maxDelay = delay;
     }
-    return maxDelay;
+    return maxDelay || 3;
   }
 
-  // Invia un nuovo messaggio con countdown
+  // INVIO MESSAGGIO CON COUNTDOWN
   async function sendMessage() {
     if (!currentUser || !currentProfile) return;
     const content = messageInput.value.trim();
     if (content === "") return;
 
-    // Calcola il ritardo massimo per il settore del mittente
+    // Calcola il ritardo massimo
     const maxDelay = await getMaxDelayForSector(currentProfile.sector);
     
     // Inserisci nel DB
@@ -313,44 +317,35 @@
       return;
     }
     
-    // Messaggio di sistema con countdown
-    const systemMsgDiv = document.createElement('div');
-    systemMsgDiv.className = 'message system-message';
+    // Mostra countdown
+    let remaining = maxDelay;
+    const countdownDiv = addSystemMessage(`Message transmitted. Maximum subspace delay: ${remaining} seconds until delivery to all sectors.`, true);
     const startTime = Date.now();
-    let countdown = maxDelay;
     
-    const updateCountdown = () => {
+    const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, maxDelay - elapsed);
-      systemMsgDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message transmitted. Maximum subspace delay: ${remaining} seconds until delivery to all sectors.`;
-      if (remaining === 0) {
-        clearInterval(countdownInterval);
-        systemMsgDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message delivered to all sectors.`;
+      const newRemaining = Math.max(0, maxDelay - elapsed);
+      if (newRemaining !== remaining) {
+        remaining = newRemaining;
+        countdownDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message transmitted. Maximum subspace delay: ${remaining} seconds until delivery to all sectors.`;
+        if (remaining === 0) {
+          clearInterval(interval);
+          countdownDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message delivered to all sectors.`;
+        }
       }
-    };
-    
-    updateCountdown();
-    chatLogDiv.appendChild(systemMsgDiv);
-    chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
-    
-    const countdownInterval = setInterval(updateCountdown, 1000);
-    // Pulisce l'intervallo se il componente viene rimosso (non critico)
-    systemMsgDiv._countdownInterval = countdownInterval;
+    }, 1000);
     
     messageInput.value = "";
   }
 
-  // Carica i messaggi dal DB e li filtra in base al ritardo
+  // Carica e visualizza messaggi con ritardo per gli altri
   async function fetchAndDisplayMessages() {
     if (!currentProfile) return;
     const { data: messages, error } = await _supabase
       .from('messages')
       .select('*, profiles!inner(nickname)')
       .order('sent_at', { ascending: true });
-    if (error) {
-      console.error(error);
-      return;
-    }
+    if (error) return;
     for (const msg of messages) {
       if (shownMessages.has(msg.id)) continue;
       if (msg.user_id === currentUser.id) {
@@ -375,15 +370,15 @@
     }, 2000);
   }
 
-  // ---------- GESTIONE AUTENTICAZIONE ----------
+  // ---------- AUTH (invariata, ma funzionante) ----------
   async function showLoginForm() {
     authPanel.innerHTML = `
       <div style="margin-bottom: 15px;">
-        <input type="text" id="loginNick" placeholder="Nickname" style="width:100%; margin-bottom:8px; font-family:'VT323', monospace;">
-        <input type="password" id="loginPass" placeholder="Password" style="width:100%; margin-bottom:8px; font-family:'VT323', monospace;">
-        <button id="doLoginBtn" style="font-family:'VT323', monospace;">>> CONNECT TO SUBSPACE</button>
+        <input type="text" id="loginNick" placeholder="Nickname" style="width:100%; margin-bottom:8px;">
+        <input type="password" id="loginPass" placeholder="Password" style="width:100%; margin-bottom:8px;">
+        <button id="doLoginBtn">>> CONNECT TO SUBSPACE</button>
         <hr>
-        <span>New operator? <button id="showRegisterBtn" style="background:none; border:none; text-decoration:underline; font-family:'VT323', monospace;">Register new ID</button></span>
+        <span>New operator? <button id="showRegisterBtn" style="background:none; border:none; text-decoration:underline;">Register new ID</button></span>
       </div>
     `;
     document.getElementById('doLoginBtn').onclick = doLogin;
@@ -417,17 +412,17 @@
   async function showRegisterForm() {
     authPanel.innerHTML = `
       <div style="margin-bottom: 15px;">
-        <input type="text" id="regNick" placeholder="Choose nickname" style="width:100%; margin-bottom:8px; font-family:'VT323', monospace;">
-        <input type="password" id="regPass" placeholder="Password" style="width:100%; margin-bottom:8px; font-family:'VT323', monospace;">
-        <select id="regSector" style="font-family:'VT323', monospace;">
+        <input type="text" id="regNick" placeholder="Choose nickname" style="width:100%; margin-bottom:8px;">
+        <input type="password" id="regPass" placeholder="Password" style="width:100%; margin-bottom:8px;">
+        <select id="regSector">
           <option value="alpha">Sector Alpha</option>
           <option value="beta">Sector Beta</option>
           <option value="gamma">Sector Gamma</option>
           <option value="delta">Sector Delta</option>
         </select>
-        <button id="doRegisterBtn" style="margin-top:8px; font-family:'VT323', monospace;">>> REGISTER</button>
+        <button id="doRegisterBtn" style="margin-top:8px;">>> REGISTER</button>
         <hr>
-        <span>Already have ID? <button id="showLoginBtn" style="background:none; border:none; text-decoration:underline; font-family:'VT323', monospace;">Login</button></span>
+        <span>Already have ID? <button id="showLoginBtn" style="background:none; border:none; text-decoration:underline;">Login</button></span>
       </div>
     `;
     document.getElementById('doRegisterBtn').onclick = doRegister;
@@ -450,23 +445,13 @@
       return;
     }
     const email = nickname + "@subspace.local";
-    const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({
-      email: email,
-      password: password,
-    });
+    const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({ email, password });
     if (signUpError) {
       addSystemMessage(`Registration error: ${signUpError.message}`);
       return;
     }
     const userId = signUpData.user.id;
-    const { error: profileError } = await _supabase
-      .from('profiles')
-      .insert({
-        id: userId,
-        nickname: nickname,
-        sector: sector,
-        sector_changed_at: new Date().toISOString()
-      });
+    const { error: profileError } = await _supabase.from('profiles').insert({ id: userId, nickname, sector, sector_changed_at: new Date().toISOString() });
     if (profileError) {
       addSystemMessage(`Profile error: ${profileError.message}`);
       return;
@@ -483,15 +468,8 @@
 
   async function loadProfile() {
     if (!currentUser) return;
-    const { data, error } = await _supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', currentUser.id)
-      .single();
-    if (error) {
-      console.error(error);
-      return;
-    }
+    const { data, error } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (error) return;
     currentProfile = data;
     userInfoSpan.innerText = `OPERATOR: ${currentProfile.nickname}`;
     sectorInfoSpan.innerText = `SECTOR: ${currentProfile.sector.toUpperCase()}`;
@@ -521,7 +499,6 @@
   }
 
   async function init() {
-    console.log("Subspace Terminal avviato");
     const { data: { session } } = await _supabase.auth.getSession();
     if (session) {
       currentUser = session.user;
