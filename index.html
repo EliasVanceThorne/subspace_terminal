@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Subspace Terminal ██</title>
+  <title>Subspace Terminal ██ – CYBERLINK</title>
   <style>
     /* RESET e FONT SICURO */
     * {
@@ -13,7 +13,7 @@
     }
 
     body {
-      background: radial-gradient(circle at 20% 30%, #030303, #000000);
+      background: radial-gradient(circle at 20% 30%, #001020, #000000);
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -22,7 +22,7 @@
       padding: 0;
     }
 
-    /* Effetti CRT (scanline + flicker) */
+    /* Effetti CRT con scanline e flicker – colorazione ciano */
     .crt::before {
       content: " ";
       display: block;
@@ -31,7 +31,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.05) 0px, rgba(0, 255, 0, 0.05) 2px, transparent 2px, transparent 4px);
+      background: repeating-linear-gradient(0deg, rgba(0, 255, 255, 0.05) 0px, rgba(0, 255, 255, 0.05) 2px, transparent 2px, transparent 4px);
       pointer-events: none;
       z-index: 2;
     }
@@ -44,7 +44,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 255, 0, 0.02);
+      background: rgba(0, 255, 255, 0.02);
       pointer-events: none;
       z-index: 2;
       animation: flicker 8s infinite;
@@ -61,25 +61,25 @@
       100% { opacity: 0.2; }
     }
 
-    /* TERMINALE A TUTTO SCHERMO */
+    /* TERMINALE A TUTTO SCHERMO – tema ciano */
     .terminal {
       background-color: #000000cc;
       backdrop-filter: blur(1px);
-      border: 2px solid #0f0;
+      border: 2px solid #0cf;
       border-radius: 12px;
       padding: 20px;
       width: 98vw;
       height: 96vh;
       max-width: 100%;
-      box-shadow: 0 0 20px #0f0, inset 0 0 10px #0f0;
-      color: #0f0;
+      box-shadow: 0 0 20px #0cf, inset 0 0 10px #0cf;
+      color: #0cf;
       font-size: 1.2rem;
       display: flex;
       flex-direction: column;
       margin: 1vh auto;
     }
 
-    /* Scrollbar vintage */
+    /* Scrollbar vintage ciano */
     ::-webkit-scrollbar {
       width: 8px;
       background: #000;
@@ -88,7 +88,7 @@
       background: #000;
     }
     ::-webkit-scrollbar-thumb {
-      background: #0f0;
+      background: #0cf;
       border-radius: 4px;
     }
 
@@ -96,7 +96,7 @@
     #chatLog {
       flex: 1;
       overflow-y: auto;
-      border: 1px solid #0f0;
+      border: 1px solid #0cf;
       padding: 10px;
       margin-bottom: 20px;
       background: #000000aa;
@@ -107,12 +107,12 @@
     .message {
       margin: 4px 0;
       word-break: break-word;
-      border-left: 2px solid #0f0;
+      border-left: 2px solid #0cf;
       padding-left: 8px;
     }
 
     .system-message {
-      color: #aaffaa;
+      color: #9ff;
       font-style: italic;
       opacity: 0.9;
     }
@@ -123,11 +123,11 @@
       flex-wrap: wrap;
     }
 
-    /* INPUT – stile terminale con cursore spesso e lampeggiante */
+    /* INPUT – stile terminale con cursore spesso e lampeggiante ciano */
     input, button, select {
       background: #000;
-      border: 1px solid #0f0;
-      color: #0f0;
+      border: 1px solid #0cf;
+      color: #0cf;
       font-family: 'Courier New', 'Share Tech Mono', monospace;
       font-size: 1.2rem;
       padding: 8px 12px;
@@ -136,39 +136,30 @@
 
     #messageInput {
       flex: 3;
-      caret-color: #0f0;
-      caret-shape: block;   /* cursore a blocco (supporto limitato) */
-      color: #0f0;
-      -webkit-text-fill-color: #0f0;
+      caret-color: #0cf;
+      caret-shape: block;
+      color: #0cf;
+      -webkit-text-fill-color: #0cf;
       background: #000;
-      border: 1px solid #0f0;
-      /* assicura che il testo sia visibile */
+      border: 1px solid #0cf;
       font-weight: normal;
       letter-spacing: 0.5px;
-    }
-    /* Cursore lampeggiante alternativo (se caret-shape non basta) */
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-    /* Usiamo un effetto di lampeggio sul bordo sinistro del testo (solo decorativo) */
-    #messageInput {
       animation: blinkCursor 1s step-end infinite;
     }
     @keyframes blinkCursor {
-      0%, 100% { border-right-color: #0f0; }
+      0%, 100% { border-right-color: #0cf; }
       50% { border-right-color: transparent; }
     }
-    /* Il testo digitato deve essere ben visibile */
+
     #messageInput::placeholder {
-      color: #0f0;
+      color: #0cf;
       opacity: 0.6;
     }
 
     input:focus, button:active {
-      background: #0f0;
+      background: #0cf;
       color: #000;
-      box-shadow: 0 0 5px #0f0;
+      box-shadow: 0 0 5px #0cf;
     }
 
     button {
@@ -176,15 +167,15 @@
       transition: 0.2s;
     }
     button:hover {
-      background: #0f0;
+      background: #0cf;
       color: #000;
-      box-shadow: 0 0 8px #0f0;
+      box-shadow: 0 0 8px #0cf;
     }
 
     .status-bar {
       margin-top: 15px;
       font-size: 0.9rem;
-      border-top: 1px dashed #0f0;
+      border-top: 1px dashed #0cf;
       padding-top: 8px;
       display: flex;
       justify-content: space-between;
@@ -193,23 +184,27 @@
     .blinking-cursor {
       display: inline-block;
       width: 10px;
-      background-color: #0f0;
+      background-color: #0cf;
       animation: blink 1s step-end infinite;
       margin-left: 2px;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
     h1 {
       font-size: 1.8rem;
       margin: 0 0 15px 0;
       letter-spacing: 2px;
-      text-shadow: 0 0 5px #0f0;
+      text-shadow: 0 0 5px #0cf;
       font-family: 'Courier New', 'Share Tech Mono', monospace;
     }
     hr {
-      border-color: #0f0;
+      border-color: #0cf;
     }
     .countdown-message {
-      color: #cfc;
+      color: #aff;
       font-weight: bold;
     }
   </style>
@@ -254,6 +249,12 @@
   const userInfoSpan = document.getElementById('userInfo');
   const sectorInfoSpan = document.getElementById('sectorInfo');
 
+  // Helper: capitalizza prima lettera
+  function capitalize(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  }
+
   // ---------- UTILITY ----------
   function addSystemMessage(text, isCountdown = false) {
     const div = document.createElement('div');
@@ -267,9 +268,10 @@
 
   function addUserMessage(nickname, content, sentAt, sectorFrom) {
     const time = new Date(sentAt).toLocaleTimeString();
+    const sectorDisplay = capitalize(sectorFrom);
     const div = document.createElement('div');
     div.className = 'message';
-    div.innerHTML = `<span style="color:#8f8;">[${time}] <strong>${escapeHtml(nickname)}</strong> [${sectorFrom}] ></span> ${escapeHtml(content)}`;
+    div.innerHTML = `<span style="color:#8cf;">[${time}] <strong>${escapeHtml(nickname)}</strong> [${sectorDisplay}] ></span> ${escapeHtml(content)}`;
     chatLogDiv.appendChild(div);
     chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
   }
@@ -283,39 +285,46 @@
     });
   }
 
-  // Calcola ritardo tra due settori (usa tabella sectors)
+  // Calcola ritardo in SECONDI tra due settori (ora 5-10 minuti)
   async function getDelaySeconds(sectorFrom, sectorTo) {
     const { data: sectors, error } = await _supabase.from('sectors').select('*');
-    if (error || !sectors) return 3;
+    if (error || !sectors) return 300; // default 5 minuti
     const from = sectors.find(s => s.name === sectorFrom);
     const to = sectors.find(s => s.name === sectorTo);
-    if (!from || !to) return 3;
+    if (!from || !to) return 300;
     const dx = from.x - to.x;
     const dy = from.y - to.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    return Math.max(2, Math.floor(dist * 2));
+    // Ritardo da 300 a 600 secondi (5-10 minuti) in base alla distanza (maxDist ~10.6)
+    let delaySec = Math.floor(dist * 60);  // dist*60 dà ~636 sec per dist 10.6
+    if (delaySec < 300) delaySec = 300;    // minimo 5 minuti
+    if (delaySec > 600) delaySec = 600;    // massimo 10 minuti
+    return delaySec;
   }
 
   // Ritardo massimo verso qualsiasi settore (escluso il proprio)
   async function getMaxDelayForSector(sectorFrom) {
     const { data: sectors, error } = await _supabase.from('sectors').select('*');
-    if (error || !sectors) return 5;
+    if (error || !sectors) return 600;
     let maxDelay = 0;
     for (const s of sectors) {
       if (s.name === sectorFrom) continue;
       const delay = await getDelaySeconds(sectorFrom, s.name);
       if (delay > maxDelay) maxDelay = delay;
     }
-    return maxDelay || 3;
+    return maxDelay || 600;
   }
 
-  // INVIO MESSAGGIO con countdown
+  // INVIO MESSAGGIO con countdown in minuti/secondi
   async function sendMessage() {
     if (!currentUser || !currentProfile) return;
     const content = messageInput.value.trim();
     if (content === "") return;
 
     const maxDelay = await getMaxDelayForSector(currentProfile.sector);
+    const maxDelayMinutes = Math.floor(maxDelay / 60);
+    const maxDelaySeconds = maxDelay % 60;
+    const delayText = maxDelayMinutes > 0 ? `${maxDelayMinutes}m ${maxDelaySeconds}s` : `${maxDelaySeconds}s`;
     
     const { error } = await _supabase
       .from('messages')
@@ -329,16 +338,19 @@
       return;
     }
     
-    // Countdown visivo
+    // Countdown visivo in minuti/secondi
     let remaining = maxDelay;
-    const countdownDiv = addSystemMessage(`Message transmitted. Maximum subspace delay: ${remaining} seconds until delivery to all sectors.`, true);
+    const countdownDiv = addSystemMessage(`Message transmitted. Maximum subspace delay: ${delayText} until delivery to all sectors.`, true);
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const newRemaining = Math.max(0, maxDelay - elapsed);
       if (newRemaining !== remaining) {
         remaining = newRemaining;
-        countdownDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message transmitted. Maximum subspace delay: ${remaining} seconds until delivery to all sectors.`;
+        const remMinutes = Math.floor(remaining / 60);
+        const remSeconds = remaining % 60;
+        const remText = remMinutes > 0 ? `${remMinutes}m ${remSeconds}s` : `${remSeconds}s`;
+        countdownDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message transmitted. Maximum subspace delay: ${remText} until delivery to all sectors.`;
         if (remaining === 0) {
           clearInterval(interval);
           countdownDiv.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § Message delivered to all sectors.`;
@@ -347,7 +359,7 @@
     }, 1000);
     
     messageInput.value = "";
-    messageInput.focus();  // mantiene il focus per scrivere subito
+    messageInput.focus();
   }
 
   // Recupera e mostra messaggi (con ritardo per gli altri)
@@ -382,7 +394,7 @@
     }, 2000);
   }
 
-  // ---------- AUTENTICAZIONE (stessa logica, funzionale) ----------
+  // ---------- AUTENTICAZIONE ----------
   async function showLoginForm() {
     authPanel.innerHTML = `
       <div style="margin-bottom: 15px;">
@@ -484,7 +496,7 @@
     if (error) return;
     currentProfile = data;
     userInfoSpan.innerText = `OPERATOR: ${currentProfile.nickname}`;
-    sectorInfoSpan.innerText = `SECTOR: ${currentProfile.sector.toUpperCase()}`;
+    sectorInfoSpan.innerText = `SECTOR: ${capitalize(currentProfile.sector)}`;
   }
 
   async function logout() {
