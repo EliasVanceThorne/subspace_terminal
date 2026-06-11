@@ -201,17 +201,18 @@
 
 <script>
   // ---------- CONFIGURAZIONE SUPABASE ----------
-  const SUPABASE_URL = "https://dvjtdszdzcdatqextzrz.supabase.co";     // es. https://xxxxx.supabase.co
+  const SUPABASE_URL = "https://dvjtdszdzcdatqextzrz.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_y2ndok49LIbaDl7C89aiGg_lABxwt_u";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ---------- GLOBALS ----------
-  let currentUser = null;        // oggetto utente da supabase auth
-  let currentProfile = null;     // nickname, sector, etc
-  let shownMessages = new Set();  // ID messaggi già visualizzati nella chat
+  // Crea il client con nome univoco
+  const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Il resto del codice usa _supabase invece di supabase
+  let currentUser = null;
+  let currentProfile = null;
+  let shownMessages = new Set();
   let refreshInterval = null;
 
-  // Elementi DOM
   const authPanel = document.getElementById('authPanel');
   const chatPanel = document.getElementById('chatPanel');
   const chatLogDiv = document.getElementById('chatLog');
@@ -221,7 +222,6 @@
   const userInfoSpan = document.getElementById('userInfo');
   const sectorInfoSpan = document.getElementById('sectorInfo');
 
-  // ---------- UTILITY ----------
   function addSystemMessage(text) {
     const div = document.createElement('div');
     div.className = 'message system-message';
@@ -230,7 +230,6 @@
     chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
   }
 
-  // Mostra un messaggio utente normale (già consegnato)
   function addUserMessage(nickname, content, sentAt, sectorFrom) {
     const time = new Date(sentAt).toLocaleTimeString();
     const div = document.createElement('div');
@@ -249,10 +248,8 @@
     });
   }
 
-  // Calcola ritardo in secondi tra due settori (coordinate)
   async function getDelaySeconds(sectorFrom, sectorTo) {
-    // prendi le coordinate dai settori (li abbiamo in una cache)
-    const { data: sectors, error } = await supabase.from('sectors').select('*');
+    const { data: sectors, error } = await _supabase.from('sectors').select('*');
     if (error) return 5;
     const from = sectors.find(s => s.name === sectorFrom);
     const to = sectors.find(s => s.name === sectorTo);
@@ -260,16 +257,12 @@
     const dx = from.x - to.x;
     const dy = from.y - to.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    // ogni unità di distanza = 2 secondi (ritardo massimo ~ 20 secondi per distanza 10)
     return Math.floor(dist * 2);
   }
 
-  // Carica i messaggi dal DB e li filtra in base al ritardo per l'utente corrente
   async function fetchAndDisplayMessages() {
     if (!currentProfile) return;
-
-    // Prendi tutti i messaggi ordinati per sent_at (dal più vecchio)
-    const { data: messages, error } = await supabase
+    const { data: messages, error } = await _supabase
       .from('messages')
       .select('*, profiles!inner(nickname)')
       .order('sent_at', { ascending: true });
@@ -277,19 +270,13 @@
       console.error(error);
       return;
     }
-
-    // Per ogni messaggio non ancora mostrato, verifica se è trascorso il ritardo
     for (const msg of messages) {
       if (shownMessages.has(msg.id)) continue;
-
-      // Il mittente vede subito i propri messaggi? Se l'utente corrente è il mittente, mostralo subito
       if (msg.user_id === currentUser.id) {
         addUserMessage(msg.profiles.nickname, msg.content, msg.sent_at, msg.sector_from);
         shownMessages.add(msg.id);
         continue;
       }
-
-      // Altrimenti calcola ritardo in base al settore del mittente e del destinatario (settore dell'utente corrente)
       const delaySec = await getDelaySeconds(msg.sector_from, currentProfile.sector);
       const sentTime = new Date(msg.sent_at).getTime();
       const now = Date.now();
@@ -300,14 +287,11 @@
     }
   }
 
-  // Invia un nuovo messaggio
   async function sendMessage() {
     if (!currentUser || !currentProfile) return;
     const content = messageInput.value.trim();
     if (content === "") return;
-
-    // Inserisci nel DB
-    const { error } = await supabase
+    const { error } = await _supabase
       .from('messages')
       .insert({
         user_id: currentUser.id,
@@ -315,14 +299,13 @@
         sector_from: currentProfile.sector
       });
     if (error) {
-      addSystemMessage(`ERRORE: ${error.message}`);
+      addSystemMessage(`ERROR: ${error.message}`);
     } else {
-      addSystemMessage(`Messaggio trasmesso. Viaggerà nel subspazio verso i settori riceventi.`);
+      addSystemMessage(`Message transmitted. Traveling through subspace.`);
       messageInput.value = "";
     }
   }
 
-  // Aggiorna periodicamente la chat (ogni 2 secondi)
   function startPolling() {
     if (refreshInterval) clearInterval(refreshInterval);
     refreshInterval = setInterval(() => {
@@ -330,7 +313,7 @@
     }, 2000);
   }
 
-  // ---------- GESTIONE AUTENTICAZIONE ----------
+  // Auth functions (usa _supabase)
   async function showLoginForm() {
     authPanel.innerHTML = `
       <div style="margin-bottom: 15px;">
@@ -349,22 +332,19 @@
     const nickname = document.getElementById('loginNick').value.trim();
     const password = document.getElementById('loginPass').value;
     if (!nickname || !password) return;
-
-    // Trova l'email associata a questo nickname nella tabella profiles
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await _supabase
       .from('profiles')
       .select('id')
       .eq('nickname', nickname)
       .maybeSingle();
     if (profileError || !profile) {
-      addSystemMessage("Nickname non trovato.");
+      addSystemMessage("Nickname not found.");
       return;
     }
-    // Per semplicità usiamo nickname@subspace.local come email
     const email = nickname + "@subspace.local";
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      addSystemMessage(`Login fallito: ${error.message}`);
+      addSystemMessage(`Login failed: ${error.message}`);
       return;
     }
     currentUser = data.user;
@@ -378,10 +358,10 @@
         <input type="text" id="regNick" placeholder="Choose nickname" style="width:100%; margin-bottom:8px;">
         <input type="password" id="regPass" placeholder="Password" style="width:100%; margin-bottom:8px;">
         <select id="regSector">
-          <option value="alpha">Settore Alpha</option>
-          <option value="beta">Settore Beta</option>
-          <option value="gamma">Settore Gamma</option>
-          <option value="delta">Settore Delta</option>
+          <option value="alpha">Sector Alpha</option>
+          <option value="beta">Sector Beta</option>
+          <option value="gamma">Sector Gamma</option>
+          <option value="delta">Sector Delta</option>
         </select>
         <button id="doRegisterBtn" style="margin-top:8px;">>> REGISTER</button>
         <hr>
@@ -397,32 +377,27 @@
     const password = document.getElementById('regPass').value;
     const sector = document.getElementById('regSector').value;
     if (!nickname || !password) return;
-
-    // Controlla se nickname è già in uso o bloccato
-    const { data: existing } = await supabase.from('profiles').select('nickname').eq('nickname', nickname);
+    const { data: existing } = await _supabase.from('profiles').select('nickname').eq('nickname', nickname);
     if (existing && existing.length > 0) {
-      addSystemMessage("Nickname già in uso.");
+      addSystemMessage("Nickname already in use.");
       return;
     }
-    const { data: reserved } = await supabase.from('reserved_nicknames').select('expires_at').eq('nickname', nickname).gt('expires_at', new Date().toISOString());
+    const { data: reserved } = await _supabase.from('reserved_nicknames').select('expires_at').eq('nickname', nickname).gt('expires_at', new Date().toISOString());
     if (reserved && reserved.length > 0) {
-      addSystemMessage("Nickname bloccato per 30 giorni (recupero di vecchio account).");
+      addSystemMessage("Nickname reserved for 30 days.");
       return;
     }
-
     const email = nickname + "@subspace.local";
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({
       email: email,
       password: password,
     });
     if (signUpError) {
-      addSystemMessage(`Errore registrazione: ${signUpError.message}`);
+      addSystemMessage(`Registration error: ${signUpError.message}`);
       return;
     }
     const userId = signUpData.user.id;
-
-    // Crea profilo
-    const { error: profileError } = await supabase
+    const { error: profileError } = await _supabase
       .from('profiles')
       .insert({
         id: userId,
@@ -431,14 +406,12 @@
         sector_changed_at: new Date().toISOString()
       });
     if (profileError) {
-      addSystemMessage(`Errore profilo: ${profileError.message}`);
-      await supabase.auth.admin.deleteUser(userId); // rollback approssimativo
+      addSystemMessage(`Profile error: ${profileError.message}`);
       return;
     }
-    // Login automatico
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: loginError } = await _supabase.auth.signInWithPassword({ email, password });
     if (loginError) {
-      addSystemMessage("Registrazione ok, ma login automatico fallito. Prova manuale.");
+      addSystemMessage("Registration OK, but auto-login failed. Please login manually.");
     } else {
       currentUser = signUpData.user;
       await loadProfile();
@@ -448,7 +421,7 @@
 
   async function loadProfile() {
     if (!currentUser) return;
-    const { data, error } = await supabase
+    const { data, error } = await _supabase
       .from('profiles')
       .select('*')
       .eq('id', currentUser.id)
@@ -463,7 +436,7 @@
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await _supabase.auth.signOut();
     currentUser = null;
     currentProfile = null;
     shownMessages.clear();
@@ -485,10 +458,9 @@
     showLoginForm();
   }
 
-  // ---------- INIT ----------
   async function init() {
-    // Controlla se esiste già una sessione
-    const { data: { session } } = await supabase.auth.getSession();
+    console.log("Subspace Terminal avviato");
+    const { data: { session } } = await _supabase.auth.getSession();
     if (session) {
       currentUser = session.user;
       await loadProfile();
@@ -496,7 +468,6 @@
     } else {
       showAuthUI();
     }
-
     sendBtn.onclick = sendMessage;
     logoutBtn.onclick = logout;
     messageInput.onkeydown = (e) => { if (e.key === 'Enter') sendMessage(); };
