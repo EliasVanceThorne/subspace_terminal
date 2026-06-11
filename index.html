@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subspace Terminal ██</title>
+  <style>
+    /* ---------- CRT SCI-FI STYLE ---------- */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 30%, #030303, #000000);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'VT323', monospace;
+      padding: 20px;
+    }
+
+    /* Effetto scanline e flicker */
+    .crt::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.03) 0px, rgba(0, 255, 0, 0.03) 2px, transparent 2px, transparent 4px);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .crt::after {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 255, 0, 0.02);
+      pointer-events: none;
+      z-index: 2;
+      animation: flicker 8s infinite;
+    }
+
+    @keyframes flicker {
+      0% { opacity: 0.2; }
+      5% { opacity: 0.3; }
+      10% { opacity: 0.2; }
+      20% { opacity: 0.25; }
+      50% { opacity: 0.2; }
+      55% { opacity: 0.3; }
+      70% { opacity: 0.2; }
+      100% { opacity: 0.2; }
+    }
+
+    .terminal {
+      background-color: #000000cc;
+      backdrop-filter: blur(1px);
+      border: 2px solid #0f0;
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: 0 0 20px #0f0, inset 0 0 10px #0f0;
+      color: #0f0;
+      font-size: 1.2rem;
+    }
+
+    /* Scrollbar vintage */
+    ::-webkit-scrollbar {
+      width: 8px;
+      background: #000;
+    }
+    ::-webkit-scrollbar-track {
+      background: #000;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #0f0;
+      border-radius: 4px;
+    }
+
+    /* Chat log */
+    #chatLog {
+      height: 55vh;
+      overflow-y: auto;
+      border: 1px solid #0f0;
+      padding: 10px;
+      margin-bottom: 20px;
+      background: #000000aa;
+      font-family: 'VT323', monospace;
+      font-size: 1.1rem;
+    }
+
+    .message {
+      margin: 4px 0;
+      word-break: break-word;
+      border-left: 2px solid #0f0;
+      padding-left: 8px;
+    }
+
+    .system-message {
+      color: #aaffaa;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input, button, select {
+      background: #000;
+      border: 1px solid #0f0;
+      color: #0f0;
+      font-family: 'VT323', monospace;
+      font-size: 1.2rem;
+      padding: 8px 12px;
+      outline: none;
+    }
+
+    input:focus, button:active {
+      background: #0f0;
+      color: #000;
+      box-shadow: 0 0 5px #0f0;
+    }
+
+    button {
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #0f0;
+      color: #000;
+      box-shadow: 0 0 8px #0f0;
+    }
+
+    #messageInput {
+      flex: 3;
+    }
+    .status-bar {
+      margin-top: 15px;
+      font-size: 0.9rem;
+      border-top: 1px dashed #0f0;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .blinking-cursor {
+      display: inline-block;
+      width: 10px;
+      background-color: #0f0;
+      animation: blink 1s step-end infinite;
+      margin-left: 2px;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin: 0 0 10px 0;
+      letter-spacing: 2px;
+      text-shadow: 0 0 5px #0f0;
+    }
+    hr {
+      border-color: #0f0;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="crt">
+<div class="terminal">
+  <h1>> SUBSPACE TERMINAL v1.0 <span class="blinking-cursor"></span></h1>
+  <div id="authPanel">
+    <!-- pannello login/registrazione -->
+  </div>
+  <div id="chatPanel" style="display: none;">
+    <div id="chatLog"></div>
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="> Transmette messaggio subspaziale..." maxlength="300">
+      <button id="sendBtn">>> SEND</button>
+    </div>
+    <div class="status-bar">
+      <span id="userInfo">—</span>
+      <span id="sectorInfo">—</span>
+      <button id="logoutBtn" style="font-size:0.8rem;">LOGOUT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- CONFIGURAZIONE SUPABASE ----------
+  const SUPABASE_URL = "https://dvjtdszdzcdatqextzrz.supabase.co";     // es. https://xxxxx.supabase.co
+  const SUPABASE_ANON_KEY = "sb_publishable_y2ndok49LIbaDl7C89aiGg_lABxwt_u";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------- GLOBALS ----------
+  let currentUser = null;        // oggetto utente da supabase auth
+  let currentProfile = null;     // nickname, sector, etc
+  let shownMessages = new Set();  // ID messaggi già visualizzati nella chat
+  let refreshInterval = null;
+
+  // Elementi DOM
+  const authPanel = document.getElementById('authPanel');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatLogDiv = document.getElementById('chatLog');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const userInfoSpan = document.getElementById('userInfo');
+  const sectorInfoSpan = document.getElementById('sectorInfo');
+
+  // ---------- UTILITY ----------
+  function addSystemMessage(text) {
+    const div = document.createElement('div');
+    div.className = 'message system-message';
+    div.textContent = `[${new Date().toLocaleTimeString()}] § SYSTEM § ${text}`;
+    chatLogDiv.appendChild(div);
+    chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
+  }
+
+  // Mostra un messaggio utente normale (già consegnato)
+  function addUserMessage(nickname, content, sentAt, sectorFrom) {
+    const time = new Date(sentAt).toLocaleTimeString();
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.innerHTML = `<span style="color:#8f8;">[${time}] <strong>${escapeHtml(nickname)}</strong> [${sectorFrom}] ></span> ${escapeHtml(content)}`;
+    chatLogDiv.appendChild(div);
+    chatLogDiv.scrollTop = chatLogDiv.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // Calcola ritardo in secondi tra due settori (coordinate)
+  async function getDelaySeconds(sectorFrom, sectorTo) {
+    // prendi le coordinate dai settori (li abbiamo in una cache)
+    const { data: sectors, error } = await supabase.from('sectors').select('*');
+    if (error) return 5;
+    const from = sectors.find(s => s.name === sectorFrom);
+    const to = sectors.find(s => s.name === sectorTo);
+    if (!from || !to) return 5;
+    const dx = from.x - to.x;
+    const dy = from.y - to.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    // ogni unità di distanza = 2 secondi (ritardo massimo ~ 20 secondi per distanza 10)
+    return Math.floor(dist * 2);
+  }
+
+  // Carica i messaggi dal DB e li filtra in base al ritardo per l'utente corrente
+  async function fetchAndDisplayMessages() {
+    if (!currentProfile) return;
+
+    // Prendi tutti i messaggi ordinati per sent_at (dal più vecchio)
+    const { data: messages, error } = await supabase
+      .from('messages')
+      .select('*, profiles!inner(nickname)')
+      .order('sent_at', { ascending: true });
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    // Per ogni messaggio non ancora mostrato, verifica se è trascorso il ritardo
+    for (const msg of messages) {
+      if (shownMessages.has(msg.id)) continue;
+
+      // Il mittente vede subito i propri messaggi? Se l'utente corrente è il mittente, mostralo subito
+      if (msg.user_id === currentUser.id) {
+        addUserMessage(msg.profiles.nickname, msg.content, msg.sent_at, msg.sector_from);
+        shownMessages.add(msg.id);
+        continue;
+      }
+
+      // Altrimenti calcola ritardo in base al settore del mittente e del destinatario (settore dell'utente corrente)
+      const delaySec = await getDelaySeconds(msg.sector_from, currentProfile.sector);
+      const sentTime = new Date(msg.sent_at).getTime();
+      const now = Date.now();
+      if (now >= sentTime + delaySec * 1000) {
+        addUserMessage(msg.profiles.nickname, msg.content, msg.sent_at, msg.sector_from);
+        shownMessages.add(msg.id);
+      }
+    }
+  }
+
+  // Invia un nuovo messaggio
+  async function sendMessage() {
+    if (!currentUser || !currentProfile) return;
+    const content = messageInput.value.trim();
+    if (content === "") return;
+
+    // Inserisci nel DB
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        user_id: currentUser.id,
+        content: content,
+        sector_from: currentProfile.sector
+      });
+    if (error) {
+      addSystemMessage(`ERRORE: ${error.message}`);
+    } else {
+      addSystemMessage(`Messaggio trasmesso. Viaggerà nel subspazio verso i settori riceventi.`);
+      messageInput.value = "";
+    }
+  }
+
+  // Aggiorna periodicamente la chat (ogni 2 secondi)
+  function startPolling() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+      if (currentProfile) fetchAndDisplayMessages();
+    }, 2000);
+  }
+
+  // ---------- GESTIONE AUTENTICAZIONE ----------
+  async function showLoginForm() {
+    authPanel.innerHTML = `
+      <div style="margin-bottom: 15px;">
+        <input type="text" id="loginNick" placeholder="Nickname" style="width:100%; margin-bottom:8px;">
+        <input type="password" id="loginPass" placeholder="Password" style="width:100%; margin-bottom:8px;">
+        <button id="doLoginBtn">>> CONNECT TO SUBSPACE</button>
+        <hr>
+        <span>New operator? <button id="showRegisterBtn" style="background:none; border:none; text-decoration:underline;">Register new ID</button></span>
+      </div>
+    `;
+    document.getElementById('doLoginBtn').onclick = doLogin;
+    document.getElementById('showRegisterBtn').onclick = showRegisterForm;
+  }
+
+  async function doLogin() {
+    const nickname = document.getElementById('loginNick').value.trim();
+    const password = document.getElementById('loginPass').value;
+    if (!nickname || !password) return;
+
+    // Trova l'email associata a questo nickname nella tabella profiles
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('nickname', nickname)
+      .maybeSingle();
+    if (profileError || !profile) {
+      addSystemMessage("Nickname non trovato.");
+      return;
+    }
+    // Per semplicità usiamo nickname@subspace.local come email
+    const email = nickname + "@subspace.local";
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      addSystemMessage(`Login fallito: ${error.message}`);
+      return;
+    }
+    currentUser = data.user;
+    await loadProfile();
+    showChatUI();
+  }
+
+  async function showRegisterForm() {
+    authPanel.innerHTML = `
+      <div style="margin-bottom: 15px;">
+        <input type="text" id="regNick" placeholder="Choose nickname" style="width:100%; margin-bottom:8px;">
+        <input type="password" id="regPass" placeholder="Password" style="width:100%; margin-bottom:8px;">
+        <select id="regSector">
+          <option value="alpha">Settore Alpha</option>
+          <option value="beta">Settore Beta</option>
+          <option value="gamma">Settore Gamma</option>
+          <option value="delta">Settore Delta</option>
+        </select>
+        <button id="doRegisterBtn" style="margin-top:8px;">>> REGISTER</button>
+        <hr>
+        <span>Already have ID? <button id="showLoginBtn" style="background:none; border:none; text-decoration:underline;">Login</button></span>
+      </div>
+    `;
+    document.getElementById('doRegisterBtn').onclick = doRegister;
+    document.getElementById('showLoginBtn').onclick = showLoginForm;
+  }
+
+  async function doRegister() {
+    const nickname = document.getElementById('regNick').value.trim();
+    const password = document.getElementById('regPass').value;
+    const sector = document.getElementById('regSector').value;
+    if (!nickname || !password) return;
+
+    // Controlla se nickname è già in uso o bloccato
+    const { data: existing } = await supabase.from('profiles').select('nickname').eq('nickname', nickname);
+    if (existing && existing.length > 0) {
+      addSystemMessage("Nickname già in uso.");
+      return;
+    }
+    const { data: reserved } = await supabase.from('reserved_nicknames').select('expires_at').eq('nickname', nickname).gt('expires_at', new Date().toISOString());
+    if (reserved && reserved.length > 0) {
+      addSystemMessage("Nickname bloccato per 30 giorni (recupero di vecchio account).");
+      return;
+    }
+
+    const email = nickname + "@subspace.local";
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+    });
+    if (signUpError) {
+      addSystemMessage(`Errore registrazione: ${signUpError.message}`);
+      return;
+    }
+    const userId = signUpData.user.id;
+
+    // Crea profilo
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        nickname: nickname,
+        sector: sector,
+        sector_changed_at: new Date().toISOString()
+      });
+    if (profileError) {
+      addSystemMessage(`Errore profilo: ${profileError.message}`);
+      await supabase.auth.admin.deleteUser(userId); // rollback approssimativo
+      return;
+    }
+    // Login automatico
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    if (loginError) {
+      addSystemMessage("Registrazione ok, ma login automatico fallito. Prova manuale.");
+    } else {
+      currentUser = signUpData.user;
+      await loadProfile();
+      showChatUI();
+    }
+  }
+
+  async function loadProfile() {
+    if (!currentUser) return;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+    if (error) {
+      console.error(error);
+      return;
+    }
+    currentProfile = data;
+    userInfoSpan.innerText = `OPERATOR: ${currentProfile.nickname}`;
+    sectorInfoSpan.innerText = `SECTOR: ${currentProfile.sector.toUpperCase()}`;
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    currentUser = null;
+    currentProfile = null;
+    shownMessages.clear();
+    if (refreshInterval) clearInterval(refreshInterval);
+    chatLogDiv.innerHTML = "";
+    showAuthUI();
+  }
+
+  function showChatUI() {
+    authPanel.style.display = 'none';
+    chatPanel.style.display = 'block';
+    startPolling();
+    fetchAndDisplayMessages();
+  }
+
+  function showAuthUI() {
+    authPanel.style.display = 'block';
+    chatPanel.style.display = 'none';
+    showLoginForm();
+  }
+
+  // ---------- INIT ----------
+  async function init() {
+    // Controlla se esiste già una sessione
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadProfile();
+      showChatUI();
+    } else {
+      showAuthUI();
+    }
+
+    sendBtn.onclick = sendMessage;
+    logoutBtn.onclick = logout;
+    messageInput.onkeydown = (e) => { if (e.key === 'Enter') sendMessage(); };
+  }
+
+  init();
+</script>
+</body>
+</html>
