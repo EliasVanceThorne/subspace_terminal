@@ -2,27 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Subspace Terminal ██</title>
   <style>
-    /* ---------- FONT CRT LEGGIBILE ---------- */
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    /* RESET e FONT SICURO */
     * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
 
     body {
       background: radial-gradient(circle at 20% 30%, #030303, #000000);
-      margin: 0;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
-      padding: 20px;
+      font-family: 'Courier New', 'Share Tech Mono', monospace;
+      padding: 0;
     }
 
-    /* Effetto scanline e flicker */
+    /* Effetti CRT (scanline + flicker) */
     .crt::before {
       content: " ";
       display: block;
@@ -61,19 +61,25 @@
       100% { opacity: 0.2; }
     }
 
+    /* TERMINALE A TUTTO SCHERMO */
     .terminal {
       background-color: #000000cc;
       backdrop-filter: blur(1px);
       border: 2px solid #0f0;
       border-radius: 12px;
       padding: 20px;
-      width: 100%;
-      max-width: 950px;
+      width: 98vw;
+      height: 96vh;
+      max-width: 100%;
       box-shadow: 0 0 20px #0f0, inset 0 0 10px #0f0;
       color: #0f0;
       font-size: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      margin: 1vh auto;
     }
 
+    /* Scrollbar vintage */
     ::-webkit-scrollbar {
       width: 8px;
       background: #000;
@@ -86,14 +92,15 @@
       border-radius: 4px;
     }
 
+    /* Area chat */
     #chatLog {
-      height: 55vh;
+      flex: 1;
       overflow-y: auto;
       border: 1px solid #0f0;
       padding: 10px;
       margin-bottom: 20px;
       background: #000000aa;
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-family: 'Courier New', 'Share Tech Mono', monospace;
       font-size: 1.1rem;
     }
 
@@ -116,34 +123,46 @@
       flex-wrap: wrap;
     }
 
+    /* INPUT – stile terminale con cursore spesso e lampeggiante */
     input, button, select {
       background: #000;
       border: 1px solid #0f0;
       color: #0f0;
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-family: 'Courier New', 'Share Tech Mono', monospace;
       font-size: 1.2rem;
       padding: 8px 12px;
       outline: none;
     }
 
-    /* CURSORE LAMPEGGIANTE STILE BLOCCO (effetto terminale) */
     #messageInput {
       flex: 3;
       caret-color: #0f0;
+      caret-shape: block;   /* cursore a blocco (supporto limitato) */
+      color: #0f0;
+      -webkit-text-fill-color: #0f0;
       background: #000;
       border: 1px solid #0f0;
-      /* Simula un cursore a blocco tramite animazione */
-      border-right: 2px solid #0f0;
+      /* assicura che il testo sia visibile */
+      font-weight: normal;
+      letter-spacing: 0.5px;
+    }
+    /* Cursore lampeggiante alternativo (se caret-shape non basta) */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    /* Usiamo un effetto di lampeggio sul bordo sinistro del testo (solo decorativo) */
+    #messageInput {
       animation: blinkCursor 1s step-end infinite;
     }
     @keyframes blinkCursor {
       0%, 100% { border-right-color: #0f0; }
       50% { border-right-color: transparent; }
     }
-    /* Rimuove l'effetto quando l'input non è focalizzato (opzionale) */
-    #messageInput:focus {
-      border-right: 2px solid #0f0;
-      animation: blinkCursor 1s step-end infinite;
+    /* Il testo digitato deve essere ben visibile */
+    #messageInput::placeholder {
+      color: #0f0;
+      opacity: 0.6;
     }
 
     input:focus, button:active {
@@ -178,17 +197,13 @@
       animation: blink 1s step-end infinite;
       margin-left: 2px;
     }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
 
     h1 {
       font-size: 1.8rem;
-      margin: 0 0 10px 0;
+      margin: 0 0 15px 0;
       letter-spacing: 2px;
       text-shadow: 0 0 5px #0f0;
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-family: 'Courier New', 'Share Tech Mono', monospace;
     }
     hr {
       border-color: #0f0;
@@ -196,7 +211,6 @@
     .countdown-message {
       color: #cfc;
       font-weight: bold;
-      letter-spacing: 1px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -205,10 +219,10 @@
 <div class="terminal">
   <h1>> SUBSPACE TERMINAL v1.0 <span class="blinking-cursor"></span></h1>
   <div id="authPanel"></div>
-  <div id="chatPanel" style="display: none;">
+  <div id="chatPanel" style="display: none; flex-direction: column; flex: 1;">
     <div id="chatLog"></div>
     <div class="input-area">
-      <input type="text" id="messageInput" placeholder="> Transmit subspace message..." maxlength="300">
+      <input type="text" id="messageInput" placeholder="> Transmit subspace message..." maxlength="300" autocomplete="off">
       <button id="sendBtn">>> SEND</button>
     </div>
     <div class="status-bar">
@@ -220,7 +234,7 @@
 </div>
 
 <script>
-  // ---------- SUPABASE CONFIG (USA I TUOI DATI) ----------
+  // ---------- SUPABASE CONFIG (INSERISCI I TUOI DATI) ----------
   const SUPABASE_URL = "https://dvjtdszdzcdatqextzrz.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_y2ndok49LIbaDl7C89aiGg_lABxwt_u";
   const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -269,7 +283,7 @@
     });
   }
 
-  // Calcola ritardo in secondi tra due settori
+  // Calcola ritardo tra due settori (usa tabella sectors)
   async function getDelaySeconds(sectorFrom, sectorTo) {
     const { data: sectors, error } = await _supabase.from('sectors').select('*');
     if (error || !sectors) return 3;
@@ -282,7 +296,7 @@
     return Math.max(2, Math.floor(dist * 2));
   }
 
-  // Ritardo massimo verso qualsiasi altro settore
+  // Ritardo massimo verso qualsiasi settore (escluso il proprio)
   async function getMaxDelayForSector(sectorFrom) {
     const { data: sectors, error } = await _supabase.from('sectors').select('*');
     if (error || !sectors) return 5;
@@ -295,16 +309,14 @@
     return maxDelay || 3;
   }
 
-  // INVIO MESSAGGIO CON COUNTDOWN
+  // INVIO MESSAGGIO con countdown
   async function sendMessage() {
     if (!currentUser || !currentProfile) return;
     const content = messageInput.value.trim();
     if (content === "") return;
 
-    // Calcola il ritardo massimo
     const maxDelay = await getMaxDelayForSector(currentProfile.sector);
     
-    // Inserisci nel DB
     const { error } = await _supabase
       .from('messages')
       .insert({
@@ -317,11 +329,10 @@
       return;
     }
     
-    // Mostra countdown
+    // Countdown visivo
     let remaining = maxDelay;
     const countdownDiv = addSystemMessage(`Message transmitted. Maximum subspace delay: ${remaining} seconds until delivery to all sectors.`, true);
     const startTime = Date.now();
-    
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const newRemaining = Math.max(0, maxDelay - elapsed);
@@ -336,9 +347,10 @@
     }, 1000);
     
     messageInput.value = "";
+    messageInput.focus();  // mantiene il focus per scrivere subito
   }
 
-  // Carica e visualizza messaggi con ritardo per gli altri
+  // Recupera e mostra messaggi (con ritardo per gli altri)
   async function fetchAndDisplayMessages() {
     if (!currentProfile) return;
     const { data: messages, error } = await _supabase
@@ -370,7 +382,7 @@
     }, 2000);
   }
 
-  // ---------- AUTH (invariata, ma funzionante) ----------
+  // ---------- AUTENTICAZIONE (stessa logica, funzionale) ----------
   async function showLoginForm() {
     authPanel.innerHTML = `
       <div style="margin-bottom: 15px;">
@@ -487,9 +499,10 @@
 
   function showChatUI() {
     authPanel.style.display = 'none';
-    chatPanel.style.display = 'block';
+    chatPanel.style.display = 'flex';
     startPolling();
     fetchAndDisplayMessages();
+    messageInput.focus();
   }
 
   function showAuthUI() {
